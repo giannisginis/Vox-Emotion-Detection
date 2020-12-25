@@ -1,16 +1,16 @@
-# This is a sample Python script.
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+from preprocess import PreprocessData
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+def main():
+    dicts = {'01': 'neutral', '02': 'calm', '03': 'happy', '04': 'sad', '05': 'angry', '06': 'fearful',
+             '07': 'disgust', '08': 'surprised'}
 
+    path_main = '/home/igkinis/projects/datasets/Audio_Speech_Actors_01-24'
+    outfolder = '/home/igkinis/projects/datasets/Audio_Speech_Actors_01-24_mels'
+    cl_instance = PreprocessData(dicts, path_main, outfolder)
 
-# Press the green button in the gutter to run the script.
+    cl_instance.process_audios()
+
 if __name__ == '__main__':
-    print_hi('This is a voice emotion detection repo')
+    main()
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
