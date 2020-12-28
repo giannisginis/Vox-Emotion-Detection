@@ -1,5 +1,5 @@
 # Author Ioannis Gkinis, 2020
-
+# i used this cmd to sync two directories of dataset ---> rsync -avhu --progress source destination
 # imports
 import librosa
 import librosa.display
@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import re
 import os
+from tqdm import tqdm
 
 
 class MelFeatures:
@@ -79,10 +80,11 @@ class PreprocessData(AudioInfo):
         for folders in self.folders_main:
             path_in = self.path_folder + '/{0}'.format(folders)
             files_sub = os.listdir(path_in)
-            for file in files_sub:
+            pbar = tqdm(files_sub, desc="second loop")
+            for file in pbar:
                 numbers = re.findall('\d+', file)
                 emotion = self.metadata[numbers[2]]
-                print(numbers[2], emotion)
+                pbar.set_description(numbers[2] + " " + emotion)
 
                 path_save = self.outpath + '/{0}'.format(emotion)
                 self._create_dir(path_save)
