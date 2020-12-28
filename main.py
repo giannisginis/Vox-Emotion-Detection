@@ -1,16 +1,18 @@
-from preprocess import PreprocessData
+from Dataloader.Dataloader import Dataloader
 
 
 def main():
-    dicts = {'01': 'neutral', '02': 'calm', '03': 'happy', '04': 'sad', '05': 'angry', '06': 'fearful',
-             '07': 'disgust', '08': 'surprised'}
+    dicts = {1: 'neutral', 2: 'calm', 3: 'happy', 4: 'sad', 5: 'angry', 6: 'fearful',
+             7: 'disgust', 8: 'surprised'}
 
-    path_main = '/home/igkinis/projects/datasets/Audio_Speech_Actors_01-24'
-    outfolder = '/home/igkinis/projects/datasets/Audio_Speech_Actors_01-24_mels'
-    cl_instance = PreprocessData(dicts, path_main, outfolder)
+    path_main = '/home/igkinis/projects/datasets/subset_RAVDESS'
+    outfolder = '/home/igkinis/projects/datasets/subset_RAVDESS_mels'
+    cl_instance = Dataloader(dicts, path_main, outfolder)
+    cl_instance.load_data(save2disk=True)
+    cl_instance.feature_extraction()
+    cl_instance.preprocess_data()
+    print("here")
 
-    cl_instance.process_audios()
 
 if __name__ == '__main__':
     main()
-
