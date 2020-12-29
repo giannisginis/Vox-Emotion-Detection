@@ -9,9 +9,9 @@ def main():
     outfolder = '/home/igkinis/projects/datasets/subset_RAVDESS_mels'
     cl_instance = Dataloader(dicts, path_main, outfolder)
     cl_instance.load_data(save2disk=True)
-    cl_instance.feature_extraction()
-    cl_instance.preprocess_data()
-    print("here")
+    cl_instance.feature_extraction(feature_type="mfcc", pooling=True)
+    x_train, x_test, y_train, y_test = cl_instance.preprocess_data()
+    print(cl_instance.train.shape)
 
 
 if __name__ == '__main__':
