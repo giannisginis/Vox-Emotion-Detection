@@ -5,15 +5,16 @@ import os
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
-import librosa
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from Featurizer.featurizer import AudioFeatures
 
 
-class Dataloader:
+class Dataloader(AudioFeatures):
     """Data Loader class"""
 
     def __init__(self, metadata, path_folder, outpath):
+        super().__init__(outpath)
         self.emotion = []
         self.gender = []
         self.actor = []
@@ -25,6 +26,7 @@ class Dataloader:
         self.outpath = outpath
         self.metadata = metadata
         self.counter = 0
+        self.train = None
 
         self._create_dir(self.outpath)
 
@@ -71,7 +73,7 @@ class Dataloader:
         if save2disk:
             self.combined_data.to_csv(self.outpath + '/combined_data.csv')
 
-    def feature_extraction(self):
+    def feature_extraction(self, feature_type='raw_audio', pooling=True):
         self._data2pandas()
         # ITERATE OVER ALL AUDIO FILES AND EXTRACT LOG MEL SPECTROGRAM MEAN VALUES INTO DF FOR MODELING
         df = pd.DataFrame(columns=['mel_spectrogram'])
@@ -79,16 +81,17 @@ class Dataloader:
         counter = 0
 
         for index, path in enumerate(tqdm(self.combined_data.path, desc="feature extraction from files")):
-            X, sample_rate = librosa.load(path, res_type='kaiser_fast', duration=3, sr=44100, offset=0.5)
+            X, sample_rate = self.load_audio(path, res_type='kaiser_fast', duration=3, sr=44100, offset=0.5)
 
             # get the mel-scaled spectrogram (Transform both the y-axis (frequency) to log scale, and the “color” axis
             # (amplitude) to Decibels, which is kinda the log scale of amplitudes.)
-            spectrogram = librosa.feature.melspectrogram(y=X, sr=sample_rate, n_mels=128, fmax=8000)
-            db_spec = librosa.power_to_db(spectrogram)
-            # temporally average spectrogram
-            log_spectrogram = np.mean(db_spec, axis=0)
 
-            df.loc[counter] = [log_spectrogram]
+            if feature_type != "raw_audio":
+                self.extract_features(feature_type, save_local=False, y=X, sr=sample_rate, pooling=pooling)
+            elif feature_type == "raw_audio":
+                self.features = X
+
+            df.loc[counter] = [self.features]
             counter = counter + 1
 
         # TURN ARRAY INTO LIST AND JOIN WITH COMBINE DF TO GET CORRESPONDING EMOTION LABELS
@@ -101,8 +104,8 @@ class Dataloader:
         Preprocess and splits into training and test
         :param normalize: flag for normalization
         :param test_size: test size for split
-        :param split:
-        :param encoder:
+        :param split: triggers the split of the data based on test size
+        :param encoder: define the encoder type of the labels. 'LabelEncoder' || 'OneHotEncoder'
         :return: X_train, X_test, y_train, y_test
         """
 
