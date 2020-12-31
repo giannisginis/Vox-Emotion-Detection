@@ -1,16 +1,35 @@
-# This is a sample Python script.
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+from Dataloader.Dataloader import Dataloader
+from utils.config import Config
+from model.sklearn_model import Sklearn
+import argparse
 
 
-# Press the green button in the gutter to run the script.
+def main(args):
+    # create an instance of configuration file
+    cfg = Config.from_yaml(args.config)
+
+    # Preprocess and feature extraction
+    cl_instance = Dataloader(cfg.config["data"]['labels_metadata'], cfg.config["data"]['path_main'],
+                             cfg.config["data"]['outpath'])
+    cl_instance.load_data(save2disk=cfg.config["data"]['save2disk'])
+    cl_instance.feature_extraction(feature_type=cfg.config["train"]["feature_type"],
+                                   pooling=cfg.config["train"]["pooling"])
+    x_train, x_test, y_train, y_test = cl_instance.preprocess_data(split=cfg.config["train"]["split"],
+                                                                   normalize=cfg.config["train"]["normalize"],
+                                                                   test_size=cfg.config["train"]["test_size"],
+                                                                   encoder=cfg.config["train"]["encoder"])
+
+    # Train and eval
+    model = Sklearn(cfg.config, x_train, x_test, y_train, y_test)
+    model.train(save2disk=True)
+    model.evaluate(load_model=True)
+
+
 if __name__ == '__main__':
-    print_hi('This is a voice emotion detection repo')
+    # Initiate the parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, help="path to yaml file")
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    # Read arguments from the command line
+    args = parser.parse_args()
+    main(args)
