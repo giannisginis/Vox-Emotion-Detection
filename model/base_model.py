@@ -10,7 +10,7 @@ class BaseModel(ABC):
         self.config = cfg
 
     @abstractmethod
-    def _build(self, **kwargs):
+    def _build(self):
         pass
 
     @abstractmethod

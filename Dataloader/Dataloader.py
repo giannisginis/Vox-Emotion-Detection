@@ -190,10 +190,8 @@ class Dataloader(AudioFeatures):
         if method == 'LabelEncoder':
             # creating instance of LabelEncoder
             enc = LabelEncoder()
-            y_train = enc.fit_transform(y_train)
-            y_test = enc.fit_transform(y_test)
-            for i in range(enc.classes_):
-                print(i)
+            y_train = enc.fit_transform(y_train.values.ravel())
+            y_test = enc.fit_transform(y_test.values.ravel())
             label2index = {d: i for i, d in enumerate(enc.classes_)}
             index2label = {i: d for i, d in enumerate(enc.classes_)}
         elif method == 'OneHotEncoder':

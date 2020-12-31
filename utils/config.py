@@ -7,10 +7,8 @@ import yaml
 class Config:
     """Config class which contains data, train and model hyperparameters"""
 
-    def __init__(self, data, train, model):
-        self.data = data
-        self.train = train
-        self.model = model
+    def __init__(self, cfg):
+        self.config = cfg
 
     @classmethod
     def from_yaml(cls, cfg):
@@ -18,4 +16,4 @@ class Config:
         with open(cfg, "r") as ymlfile:
             params = yaml.safe_load(ymlfile)
 
-        return cls(params["data"], params["train"], params["model"])
+        return cls(params)

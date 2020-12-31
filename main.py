@@ -9,16 +9,20 @@ def main(args):
     cfg = Config.from_yaml(args.config)
 
     # Preprocess and feature extraction
-    cl_instance = Dataloader(cfg.data['labels_metadata'], cfg.data['path_main'], cfg.data['outpath'])
-    cl_instance.load_data(save2disk=cfg.data['save2disk'])
-    cl_instance.feature_extraction(feature_type=cfg.train["feature_type"], pooling=cfg.train["pooling"])
-    x_train, x_test, y_train, y_test = cl_instance.preprocess_data()
+    cl_instance = Dataloader(cfg.config["data"]['labels_metadata'], cfg.config["data"]['path_main'],
+                             cfg.config["data"]['outpath'])
+    cl_instance.load_data(save2disk=cfg.config["data"]['save2disk'])
+    cl_instance.feature_extraction(feature_type=cfg.config["train"]["feature_type"],
+                                   pooling=cfg.config["train"]["pooling"])
+    x_train, x_test, y_train, y_test = cl_instance.preprocess_data(split=cfg.config["train"]["split"],
+                                                                   normalize=cfg.config["train"]["normalize"],
+                                                                   test_size=cfg.config["train"]["test_size"],
+                                                                   encoder=cfg.config["train"]["encoder"])
 
     # Train and eval
-    model = Sklearn(cfg, x_train, x_test, y_train, y_test, "rfc")
-    model.train()
-    model.predict()
-    model.evaluate()
+    model = Sklearn(cfg.config, x_train, x_test, y_train, y_test)
+    model.train(save2disk=True)
+    model.evaluate(load_model=True)
 
 
 if __name__ == '__main__':
