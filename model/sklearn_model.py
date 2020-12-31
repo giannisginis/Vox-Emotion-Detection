@@ -124,8 +124,8 @@ class Sklearn(BaseModel):
 
     def _apply_optimization(self, method="GridSearch"):
 
+        grid_search = None
         # Use stratification within KFold Split inside GridSearchCV
-
         kf = StratifiedKFold(**self.config['kf_dict'])
 
         # Parameter Optimization
