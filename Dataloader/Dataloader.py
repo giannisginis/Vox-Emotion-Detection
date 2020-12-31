@@ -8,23 +8,26 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from Featurizer.featurizer import AudioFeatures
+from utils.config import Config
 
 
 class Dataloader(AudioFeatures):
     """Data Loader class"""
 
-    def __init__(self, metadata, path_folder, outpath):
+    def __init__(self, metadata=None, path_folder=None, outpath=None):
         super().__init__(outpath)
+
+        self.outpath = outpath
+        self.metadata = metadata
+        self.path_folder = path_folder
+
         self.emotion = []
         self.gender = []
         self.actor = []
         self.file_path = []
         self.combined_data = None
 
-        self.path_folder = path_folder
         self.folders_main = os.listdir(self.path_folder)
-        self.outpath = outpath
-        self.metadata = metadata
         self.counter = 0
         self.train = None
 
@@ -34,6 +37,11 @@ class Dataloader(AudioFeatures):
     def _create_dir(directory):
         if not os.path.exists(directory):
             os.makedirs(directory)
+
+    @classmethod
+    def from_config(cls, conf_file):
+        cfg = Config.from_yaml(conf_file)
+        return cls(cfg.data['labels_metadata'], cfg.data['path_main'], cfg.data['outpath'])
 
     def load_data(self, save2disk=False):
         """

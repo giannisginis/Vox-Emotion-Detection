@@ -1,18 +1,31 @@
 from Dataloader.Dataloader import Dataloader
+from utils.config import Config
+from model.sklearn_model import Sklearn
+import argparse
 
 
-def main():
-    dicts = {1: 'neutral', 2: 'calm', 3: 'happy', 4: 'sad', 5: 'angry', 6: 'fearful',
-             7: 'disgust', 8: 'surprised'}
+def main(args):
+    # create an instance of configuration file
+    cfg = Config.from_yaml(args.config)
 
-    path_main = '/home/igkinis/projects/datasets/subset_RAVDESS'
-    outfolder = '/home/igkinis/projects/datasets/subset_RAVDESS_mels'
-    cl_instance = Dataloader(dicts, path_main, outfolder)
-    cl_instance.load_data(save2disk=True)
-    cl_instance.feature_extraction(feature_type="mfcc", pooling=True)
+    # Preprocess and feature extraction
+    cl_instance = Dataloader(cfg.data['labels_metadata'], cfg.data['path_main'], cfg.data['outpath'])
+    cl_instance.load_data(save2disk=cfg.data['save2disk'])
+    cl_instance.feature_extraction(feature_type=cfg.train["feature_type"], pooling=cfg.train["pooling"])
     x_train, x_test, y_train, y_test = cl_instance.preprocess_data()
-    print(cl_instance.train.shape)
+
+    # Train and eval
+    model = Sklearn(cfg, x_train, x_test, y_train, y_test, "rfc")
+    model.train()
+    model.predict()
+    model.evaluate()
 
 
 if __name__ == '__main__':
-    main()
+    # Initiate the parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, help="path to yaml file")
+
+    # Read arguments from the command line
+    args = parser.parse_args()
+    main(args)

@@ -1,0 +1,15 @@
+data:
+    path_main: '/home/igkinis/projects/datasets/subset_RAVDESS'
+    outpath: '/home/igkinis/projects/datasets/subset_RAVDESS_mels'
+    labels_metadata: { 1: 'neutral', 2: 'calm', 3: 'happy', 4: 'sad', 5: 'angry', 6: 'fearful',
+                       7: 'disgust', 8: 'surprised' }
+    save2disk: False
+model:
+    random_state: 42
+    n_jobs: 10
+    class_weight: "balanced"
+    n_estimators: 500
+    bootstrap: True
+train:
+    feature_type: log_mel
+    pooling: True
