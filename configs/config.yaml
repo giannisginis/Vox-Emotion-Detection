@@ -1,5 +1,5 @@
 data:
-    path_main: '/home/igkinis/projects/datasets/subset_RAVDESS'
+    path_main: '/home/igkinis/projects/datasets/Audio_Speech_Actors_01-24'
     outpath: '/home/igkinis/projects/datasets/subset_RAVDESS_mels'
     eval_set: '/home/igkinis/projects/datasets/subset_RAVDESS_eval'
     metrics_path: ./metrics
@@ -27,13 +27,16 @@ model:
 #    n_estimators: 250
 #    bootstrap: True
 train:
+    train: False
     normalize: True
-    test_size: 0.2
     split: False
+    test_size: 0.2
     encoder: 'LabelEncoder'
     classifier: lgb
     feature_type: log_mel
     pooling: True
+    save_feats: True
+    load_feats: True
     grid_search:
         apply: True
         method: GridSearch
@@ -41,6 +44,9 @@ train:
     folds: 5
     n_jobs : 1
     save2disk: True
+evaluation:
+    eval: True
+    load_model: True
 
 param_grid: {"max_depth": [10,30,50],
               "min_child_weight" : [1,3,6],
@@ -58,8 +64,6 @@ grid_dict:
     refit: True
     scoring: "balanced_accuracy"
 kf_dict:
-    n_splits: 3
+    n_splits: 5
     random_state: 42
     shuffle: True
-evaluation:
-    load_model: True

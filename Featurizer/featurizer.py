@@ -11,7 +11,7 @@ class AudioFeatures:
         self.features = None
         self.outpath = outpath
 
-    def extract_features(self, *feature_list, save_local=True, **kwargs):  # todo: find a way to make this work
+    def extract_features(self, *feature_list, save_local=True, **kwargs):
         """
         Specify a list of features to extract, and a feature vector will be
         built for you for a given Audio sample.
@@ -113,7 +113,7 @@ class AudioFeatures:
         # if directory already exists leaves it unaltered and saves the file inside.
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with open(filename, "wb") as f:
-            pickle.dump(self, f)
+            pickle.dump(self.features, f)
 
     def _load_kaldi_feats(self):  # TODO: revisit and implement kaldi_io
         pass
