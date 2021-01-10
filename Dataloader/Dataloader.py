@@ -30,6 +30,7 @@ class Dataloader(AudioFeatures):
         self.folders_main = os.listdir(self.path_folder)
         self.counter = 0
         self.train = None
+        self.test = None
 
         self._create_dir(self.outpath)
 
@@ -121,6 +122,7 @@ class Dataloader(AudioFeatures):
             self._split_data(test_size)
         else:
             self.train = self.combined_data
+            self.test = self.combined_data
 
         X_train = self.train.iloc[:, 4:]
         y_train = pd.DataFrame(self.train.emotion)
