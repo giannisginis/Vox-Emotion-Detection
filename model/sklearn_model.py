@@ -10,13 +10,12 @@ import numpy as np
 import os
 from utils.plots import Plots
 from utils.metrics import Metrics
-import psutil
 
 
 class Sklearn(BaseModel, Plots, Metrics):
     """Sklearn Model Class"""
 
-    def __init__(self, cfg, x_train, x_test, y_train, y_test):
+    def __init__(self, cfg, x_train, x_test, y_train, y_test, logger):
         super().__init__(cfg)
         self.x_train = x_train
         self.x_test = x_test
@@ -29,6 +28,7 @@ class Sklearn(BaseModel, Plots, Metrics):
         self.folds = self.config["train"]["folds"]
         self.groups = None
         self.val_fold_scores_ = []
+        self.logger = logger
 
         Plots.__init__(self, outpath=self.config["data"]["metrics_path"])
 
@@ -47,6 +47,7 @@ class Sklearn(BaseModel, Plots, Metrics):
             self.config["train"]["classifier"]]()
 
     def train(self, save2disk=False):
+
         # Build Model
         self._build()
 
@@ -57,7 +58,9 @@ class Sklearn(BaseModel, Plots, Metrics):
                             "with the parameters {}".format(self.config["train"]["classifier"],
                                                             list(self.config["param_grid"].keys())))
 
+                self.logger.error(fail_msg)
                 raise ValueError(fail_msg)
+
             self._apply_optimization(method="RandomizedSearch", plot=self.config["train"]["grid_search"]["plot"])
 
         else:
@@ -74,7 +77,7 @@ class Sklearn(BaseModel, Plots, Metrics):
         self._build()
 
         # Training with cross validation
-
+        self.logger.log_info('Cross Validation training with LeaveOneGroupOut sklearn method')
         logo = LeaveOneGroupOut()
         self._create_groups()
         for train_index, test_index in logo.split(self.x_train, self.y_train, self.groups):
@@ -114,15 +117,24 @@ class Sklearn(BaseModel, Plots, Metrics):
         print('Classification Report')
         print(classification_report(self.y_test, self.predictions))
 
+        self.logger.log_info('Test accuracy is {}'.format(accuracy_score(self.y_test, self.predictions)))
+        self.logger.log_info(
+            'Test f1 score is {}\n'.format(f1_score(self.y_test, self.predictions, average='weighted')))
+        self.logger.log_info('Classification Report')
+        self.logger.log_info(classification_report(self.y_test, self.predictions))
+
         cm = self.confusion_matrix(y_true=self.y_test, y_pred=self.predictions, labels=self.clf.classes_)
 
         if plot:
+            self.logger.log_info(f'Plotting Confusion Matrix and Roc Curves')
             self.plot_confusion_matrix(title=self.config["train"]["classifier"] + '_confusion_matrix',
                                        outname=self.config["train"]["classifier"] + '_confusion_matrix.png',
                                        confusion_matrix=cm, display_labels=self.clf.classes_)
             self.plot_roc_curve_multiclass(title=self.config["train"]["classifier"] + '_roc_curve',
                                            outname=self.config["train"]["classifier"] + '_roc_curve.png', fpr=fpr,
                                            tpr=tpr, roc_auc=roc_auc, n_classes=self.clf.classes_.shape[0])
+
+            self.logger.log_info(f'Evaluation Plots Saved in {self.config["data"]["metrics_path"]}')
 
     def _predict(self, eval_set):
         self.predictions = self.clf.predict(eval_set)
@@ -131,6 +143,9 @@ class Sklearn(BaseModel, Plots, Metrics):
     def _save_model(self):
         # save the model to disk
         filename = './pretrained_models/' + 'finalized_model_' + self.config["train"]["classifier"] + '.sav'
+
+        self.logger.log_info(f'Save Model to Disk directory : {filename}')
+
         # if directory already exists leaves it unaltered and saves the file inside.
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         pickle.dump(self.clf, open(filename, 'wb'))
@@ -159,6 +174,7 @@ class Sklearn(BaseModel, Plots, Metrics):
 
     def _apply_optimization(self, method="GridSearch", plot=False):
 
+        self.logger.log_info("Cross validation Optimization with {} in progress".format(method))
         self.grid_search = None
         # Use stratification within KFold Split inside GridSearchCV
         kf = StratifiedKFold(**self.config['kf_dict'])
@@ -180,6 +196,7 @@ class Sklearn(BaseModel, Plots, Metrics):
                                                   **self.config['grid_dict'])
 
         # refit the best estimator on the FULL train set
+        self.logger.log_info("Fit model")
         self.grid_search.fit(self.x_train, self.y_train)
         self.clf = self.grid_search.best_estimator_
 

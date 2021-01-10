@@ -15,12 +15,13 @@ import pickle
 class Dataloader(AudioFeatures):
     """Data Loader class"""
 
-    def __init__(self, metadata=None, path_folder=None, outpath=None):
+    def __init__(self, metadata=None, path_folder=None, outpath=None, logger=None):
         super().__init__(outpath)
 
         self.outpath = outpath
         self.metadata = metadata
         self.path_folder = path_folder
+        self.logger = logger
 
         self.emotion = []
         self.gender = []
@@ -41,15 +42,17 @@ class Dataloader(AudioFeatures):
             os.makedirs(directory)
 
     @classmethod
-    def from_config(cls, conf_file):
+    def from_config(cls, conf_file, logger):
         cfg = Config.from_yaml(conf_file)
-        return cls(cfg.data['labels_metadata'], cfg.data['path_main'], cfg.data['outpath'])
+        return cls(cfg.data['labels_metadata'], cfg.data['path_main'], cfg.data['outpath'], logger)
 
     def load_data(self, save2disk=False):
         """
         Loads dataset from path
         :return: None
         """
+        self.logger.log_info(f'Loading Dataset')
+
         for folder in tqdm(self.folders_main, desc="Read files from folders"):
             path_in = self.path_folder + '/{0}'.format(folder)
             files = os.listdir(path_in)  # iterate over Actor folders
@@ -67,6 +70,7 @@ class Dataloader(AudioFeatures):
                 self.file_path.append("/".join((self.path_folder, folder, file)))
 
         self._data2pandas(save2disk)
+        self.logger.log_info(f'Loading Dataset - DONE')
 
     def _data2pandas(self, save2disk=False):
         """
@@ -83,40 +87,46 @@ class Dataloader(AudioFeatures):
         if save2disk:
             self.combined_data.to_csv(self.outpath + '/combined_data.csv')
 
-    def feature_extraction(self, feature_type='raw_audio', pooling=True, save_local=False):
+    def feature_extraction(self, feature_type='raw_audio', pooling=True, save_local=False,
+                           feats_filename='features.pkl'):
+        self.logger.log_info(f'Extracting {feature_type} per audio..')
+
         self._data2pandas()
         # ITERATE OVER ALL AUDIO FILES AND EXTRACT LOG MEL SPECTROGRAM MEAN VALUES INTO DF FOR MODELING
-        df = pd.DataFrame(columns=['mel_spectrogram'])
+        df = pd.DataFrame(columns=['audio_features'])
 
         counter = 0
 
         for index, path in enumerate(tqdm(self.combined_data.path, desc="feature extraction from files")):
-            X, sample_rate = self.load_audio(path, res_type='kaiser_fast', duration=3, sr=44100, offset=0.5)
+            signal, sample_rate = self.load_audio(path, res_type='kaiser_fast', duration=3, sr=44100, offset=0.5)
 
             # get the mel-scaled spectrogram (Transform both the y-axis (frequency) to log scale, and the “color” axis
             # (amplitude) to Decibels, which is kinda the log scale of amplitudes.)
 
             if feature_type != "raw_audio":
-                self.extract_features(feature_type, save_local=False, y=X, sr=sample_rate, pooling=pooling)
+                self.extract_features(feature_type, save_local=False, y=signal, sr=sample_rate, pooling=pooling)
             elif feature_type == "raw_audio":
-                self.features = X
+                self.features = signal
 
             df.loc[counter] = [self.features]
             counter = counter + 1
 
         # TURN ARRAY INTO LIST AND JOIN WITH COMBINE DF TO GET CORRESPONDING EMOTION LABELS
-        self.combined_data = pd.concat([self.combined_data, pd.DataFrame(df['mel_spectrogram'].values.tolist())],
+        self.combined_data = pd.concat([self.combined_data, pd.DataFrame(df['audio_features'].values.tolist())],
                                        axis=1)
         self.combined_data = self.combined_data.fillna(0)
 
-        if save_local:
-            self._save_local()
+        self.logger.log_info('Feature Extraction - DONE')
 
-    def load_features_from_disk(self):
+        if save_local:
+            self._feats2disk(filename=feats_filename)
+
+    def load_features_from_disk(self, filename):
         """
         Loads features from disk
         """
-        filepath = self.outpath + "/features.pkl"
+        filepath = "/".join((self.outpath, filename))
+        self.logger.log_info(f'Loading features from {filepath}')
         self.combined_data = pd.read_pickle(filepath)
 
     def preprocess_data(self, normalize=True, test_size=0.2, split=True, encoder='OneHotEncoder'):
@@ -128,30 +138,35 @@ class Dataloader(AudioFeatures):
         :param encoder: define the encoder type of the labels. 'LabelEncoder' || 'OneHotEncoder'
         :return: X_train, X_test, y_train, y_test
         """
-
+        self.logger.log_info(f'Preprocessing Data')
         if split:
+            self.logger.log_info("Split Data")
             self._split_data(test_size)
         else:
             self.train = self.combined_data
             self.test = self.combined_data
 
-        X_train = self.train.iloc[:, 4:]
+        x_train = self.train.iloc[:, 4:]
         y_train = pd.DataFrame(self.train.emotion)
 
-        X_test = self.test.iloc[:, 4:]
+        x_test = self.test.iloc[:, 4:]
         y_test = pd.DataFrame(self.test.emotion)
 
         # label encoder
+        self.logger.log_info(f'Encoding Labels with {encoder}')
         y_train, y_test, label2index, index2label = self._label_encoder(y_train, y_test,
                                                                         method=encoder)
 
         if normalize:
-            X_train, X_test = self._normalize(X_train, X_test)
+            self.logger.log_info("Apply standardization")
+            x_train, x_test = self._normalize(x_train, x_test)
 
-        X_train, y_train = self._pandas2numpy(X_train, y_train)
-        X_test, y_test = self._pandas2numpy(X_test, y_test)
+        x_train, y_train = self._pandas2numpy(x_train, y_train)
+        x_test, y_test = self._pandas2numpy(x_test, y_test)
 
-        return X_train, X_test, y_train, y_test
+        self.logger.log_info(f'Preprocessing Data - DONE')
+
+        return x_train, x_test, y_train, y_test
 
     def _split_data(self, test_size=0.2):
         # TRAIN TEST SPLIT DATA
@@ -217,11 +232,12 @@ class Dataloader(AudioFeatures):
 
         return y_train, y_test, label2index, index2label
 
-    def _save_local(self):
+    def _feats2disk(self, filename):
         """
         Saves features to disk as a pickle
         """
-        filename = self.outpath + "/features.pkl"
+        filename = "/".join((self.outpath, filename))
+        self.logger.log_info(f'Saving features to Disk directory : {filename}')
         # if directory already exists leaves it unaltered and saves the file inside.
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with open(filename, "wb") as f:
