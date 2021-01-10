@@ -19,10 +19,20 @@ def main(args):
                                                                    test_size=cfg.config["train"]["test_size"],
                                                                    encoder=cfg.config["train"]["encoder"])
 
+    # eval set
+    ev_instance = Dataloader(cfg.config["data"]['labels_metadata'], cfg.config["data"]['eval_set'],
+                             cfg.config["data"]['outpath'])
+    ev_instance.load_data(save2disk=cfg.config["data"]['save2disk'])
+    ev_instance.feature_extraction(feature_type=cfg.config["train"]["feature_type"],
+                                   pooling=cfg.config["train"]["pooling"])
+    x_test, _, y_test, _ = ev_instance.preprocess_data(split=False,
+                                                       normalize=cfg.config["train"]["normalize"],
+                                                       encoder=cfg.config["train"]["encoder"])
+
     # Train and eval
     model = Sklearn(cfg.config, x_train, x_test, y_train, y_test)
-    model.train(save2disk=True)
-    model.evaluate(load_model=True)
+    model.train(save2disk=cfg.config["train"]["save2disk"])
+    model.evaluate(load_model=cfg.config["evaluation"]["load_model"])
 
 
 if __name__ == '__main__':

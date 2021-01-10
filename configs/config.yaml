@@ -1,6 +1,8 @@
 data:
     path_main: '/home/igkinis/projects/datasets/subset_RAVDESS'
     outpath: '/home/igkinis/projects/datasets/subset_RAVDESS_mels'
+    eval_set: '/home/igkinis/projects/datasets/subset_RAVDESS_eval'
+    metrics_path: ./metrics
     labels_metadata: { 1: 'neutral', 2: 'calm', 3: 'happy', 4: 'sad', 5: 'angry', 6: 'fearful',
                        7: 'disgust', 8: 'surprised' }
     save2disk: False
@@ -26,19 +28,31 @@ model:
 #    bootstrap: True
 train:
     normalize: True
-    test_size: 0.1
-    split: True
+    test_size: 0.2
+    split: False
     encoder: 'LabelEncoder'
     classifier: lgb
     feature_type: log_mel
     pooling: True
-    grid_search: True
+    grid_search:
+        apply: True
+        method: GridSearch
+        plot: False
     folds: 5
+    n_jobs : 1
+    save2disk: True
 
 param_grid: {"max_depth": [10,30,50],
               "min_child_weight" : [1,3,6],
               "n_estimators": [200],
               "learning_rate": [0.05, 0.1,0.16],}
+#RF
+#param_grid:  {
+#    'n_estimators': [200, 500],
+#    'max_features': ['auto', 'sqrt', 'log2'],
+#    'max_depth' : [4,5,6,7,8],
+#    'criterion' :['gini', 'entropy']
+#}
 grid_dict:
     n_jobs: 4
     refit: True
@@ -47,3 +61,5 @@ kf_dict:
     n_splits: 3
     random_state: 42
     shuffle: True
+evaluation:
+    load_model: True
