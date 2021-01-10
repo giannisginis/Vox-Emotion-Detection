@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from Featurizer.featurizer import AudioFeatures
 from utils.config import Config
+import pickle
 
 
 class Dataloader(AudioFeatures):
@@ -82,7 +83,7 @@ class Dataloader(AudioFeatures):
         if save2disk:
             self.combined_data.to_csv(self.outpath + '/combined_data.csv')
 
-    def feature_extraction(self, feature_type='raw_audio', pooling=True):
+    def feature_extraction(self, feature_type='raw_audio', pooling=True, save_local=False):
         self._data2pandas()
         # ITERATE OVER ALL AUDIO FILES AND EXTRACT LOG MEL SPECTROGRAM MEAN VALUES INTO DF FOR MODELING
         df = pd.DataFrame(columns=['mel_spectrogram'])
@@ -107,6 +108,16 @@ class Dataloader(AudioFeatures):
         self.combined_data = pd.concat([self.combined_data, pd.DataFrame(df['mel_spectrogram'].values.tolist())],
                                        axis=1)
         self.combined_data = self.combined_data.fillna(0)
+
+        if save_local:
+            self._save_local()
+
+    def load_features_from_disk(self):
+        """
+        Loads features from disk
+        """
+        filepath = self.outpath + "/features.pkl"
+        self.combined_data = pd.read_pickle(filepath)
 
     def preprocess_data(self, normalize=True, test_size=0.2, split=True, encoder='OneHotEncoder'):
         """
@@ -205,3 +216,13 @@ class Dataloader(AudioFeatures):
             index2label = {i: d for i, d in enumerate(enc.categories_[0])}
 
         return y_train, y_test, label2index, index2label
+
+    def _save_local(self):
+        """
+        Saves features to disk as a pickle
+        """
+        filename = self.outpath + "/features.pkl"
+        # if directory already exists leaves it unaltered and saves the file inside.
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        with open(filename, "wb") as f:
+            pickle.dump(self.combined_data, f)
