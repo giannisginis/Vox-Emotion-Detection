@@ -2,6 +2,8 @@
 *.iml
 out
 gen
+pretrained_models/*
+metrics/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__ /
