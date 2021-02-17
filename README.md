@@ -6,4 +6,4 @@ Identifying emotion from speech is a non-trivial task pertaining to the ambiguou
 The approaches used to tackle the problem:
 
 1. ML-based: Random Forest, eXtreme Gradient Boosting and light Gradient Boosting.
-2. DL-based: Multi-Layer Perceptron, LSTM Classifier (not Implented Yet).
+2. DL-based: Multi-Layer Perceptron, LSTM Classifier (not implemented yet).
